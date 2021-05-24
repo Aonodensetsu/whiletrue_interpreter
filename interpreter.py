@@ -49,6 +49,9 @@ def interpreter():
 		#--- Manual: What can we do with this? 
 		# lines = ['value 1', 'define', 'value 1', 'print', 'value 1', 'call', 'defined', 'input', 'call', 'value 0', 'print', 'value 0', 'jump']
 		# raise
+		# Manual: How do you know this is Turing-complete?
+		# lines = ['value step', 'define', 'globalr', 'math (A%2==1)*((3*A+1)/2)+(A%2==0)*(A/2)', 'globalw', 'globalr', 'print', 'defined', 'value enter_an_arbitrary_integer', 'print', 'input', 'globalw', 'math (B!=1)*(-1)+(B==0)*(-3)', 'jump', 'value step', 'call', 'globalr', 'math (A==1)*(-1)+(A!=1)*(4)', 'jump', 'value 0', 'jump']
+		# raise
 		#--- Custom input parser
 		custom = 0
 		while True:
