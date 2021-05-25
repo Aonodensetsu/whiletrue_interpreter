@@ -8,8 +8,6 @@ alphabet = list(letters)
 #--- Enable ANSI color support in Windows
 from os import system as color
 color('')
-#--- Set the extended commands status
-extended = 1
 #--- Initialize variables
 lines = []
 variables = {'global':'0'}
@@ -18,6 +16,11 @@ nextfunction = ''
 pointer = 0
 call_pointer = 0
 pointerset = -1
+#----------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------vvv-USER-SPACE-vvv------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------
+#--- Set the extended commands status
+extended = 1
 #--- The interpreter wrapper
 def interpreter():
 	#--- Input parser
@@ -52,6 +55,9 @@ def interpreter():
 		# lines = ['value step', 'define', 'globalr', 'math A%2 * (3*A+1) + (A%2==0) * A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter an arbitrary integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1) * (-1) + (B==1) * (-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1) * 4 + (A==1) * (-1)', 'jump', 'value 0', 'jump']
 		#--- Extended manual: CALL
 		# lines = ['value hi', 'globalw hello', 'value hello', 'define', 'globalr A', 'print', 'defined', 'value hello', 'call A', 'globalr A', 'print', 'value 0', 'jump']
+#--------------------------------------------------------------------------------------------------------------------------		
+#---------------------------------------------vvv-DEVELOPER-SPACE-vvv------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------
 		#--- Custom input parser
 		if lines:
 			raise
