@@ -28,11 +28,14 @@ def interpreter():
 		#--- Manual: How to end a program?
 		# lines = ['value 0', 'jump']
 		# raise
+		#--- Manual: How to define a function?
+		# lines = ['value name', 'define', 'defined', 'value 0', 'jump']
+		# raise
 		#--- Manual: MATH variable input order explanation
 		# lines = ['value 1', 'value 2', 'value 3', 'math A+B+C', 'print', 'value 0', 'jump']
 		# raise
 		#--- Manual: Naming of functions 
-		# lines = ['value hi', 'define', 'defined', 'value 0', 'jump']
+		# lines = ['value hi how are you', 'define', 'defined', 'value 0', 'jump']
 		# lines = ['value 1', 'value 2', 'math A+B', 'define', 'defined', 'value 0', 'jump']
 		# lines = ['input', 'define', 'defined', 'value 0', 'jump']
 		# raise
@@ -47,12 +50,12 @@ def interpreter():
 		# lines = ['value 1', 'value 2', 'math A+B', 'value line 1', 'value line 2', 'value line 3', 'value line 4', 'value line 5', 'value line 6', 'value line 7', 'value line 8', 'value line 9', 'value line 10', 'math K', 'print', 'value 0', 'jump']
 		# raise
 		#--- Manual: Conditional jumps? 
-		# lines = ['value loop', 'define', 'value hi', 'print', 'globalr', 'math A+1', 'globalw', 'defined', 'value loop', 'call', 'globalr', 'math A>3', 'math 5-6*A', 'jump', 'value 0', 'jump']
+		# lines = ['value loop', 'define', 'value hi', 'print', 'globalr', 'math A+1', 'globalw', 'defined', 'value loop', 'call', 'globalr', 'math A>3', 'math (A==0) * 5 + (A!=0) * (-1)', 'jump', 'value 0', 'jump']
 		# raise
 		#--- Manual: What can we do with this? 
 		# lines = ['value 1', 'define', 'value 1', 'print', 'value 1', 'call', 'defined', 'input', 'call', 'value 0', 'print', 'value 0', 'jump']
-		# lines = ['value step', 'define', 'globalr', 'math A%2*(3*A+1)+(A%2==0)*A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter_an_arbitrary_integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1)*(-1)+(B==1)*(-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1)*4+(A==1)*(-1)', 'jump', 'value 0', 'jump']
-		# raise
+		# lines = ['value step', 'define', 'globalr', 'math A%2 * (3*A+1) + (A%2==0) * A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter an arbitrary integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1) * (-1) + (B==1) * (-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1) * 4 + (A==1) * (-1)', 'jump', 'value 0', 'jump']
+		raise
 		#--- Custom input parser
 		custom = 0
 		while True:
