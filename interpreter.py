@@ -10,8 +10,9 @@ from os import system as color
 color('')	
 #--- Initialize variables
 lines = []
-variables = {'g':'0'}
+variables = {'global':'0'}
 functions = {}
+nextfunction = ''
 pointer = 0
 call_pointer = 0
 pointerset = -1
@@ -85,7 +86,7 @@ def interpreter():
 			#--- Import global variable
 			global pointerset
 			#--- Call the handler
-			handler(lines, pointer)
+			handler(lines, pointer, 'maininterpretercall')
 			#--- Update the main pointer
 			if pointerset != -1:
 				pointer = pointerset
@@ -96,38 +97,51 @@ def interpreter():
 				#--- Reset pointer if at the end
 				pointer = 0
 #--- The handler function that actually interprets
-def handler(lines, pointer):
+def handler(lines, pointer, infunction):
 	#--- Import global variables
 	global variables
 	global functions
 	global call_pointer
 	global pointerset
 	global alphabet
+	global nextfunction
 	#--- Update executed instruction
 	value = lines[pointer]
 	#--- CALL command definition
 	if value.startswith('call'):
 		variables[pointer] = 0
-		#--- If call within a function, reset the function - infinite recursion
-		if call_pointer != 0:
-			variables[pointer] = 1
-			call_pointer = 0
-			return
 		funname = str(variables[pointer-1])
+		#--- If called from within a function of the same name, reset the function - infinite recursion
+		if call_pointer != 0:
+			if funname == infunction:
+				variables[pointer] = 1
+				call_pointer = 0
+				return
+			else:
+				call_pointer = 2147483647
+				nextfunction = funname
+				return
 		#--- Only call if function exists
 		if funname in functions:
-			variables[pointer] = 1
-			run = functions[funname]
-			#--- Sanity check for empty functions
-			while not len(run) == 0:
-				handler(run, call_pointer)
-				#--- Slowdown for functions to not hang the device
-				sleep(0.02)
-				#--- Update the function pointer
-				if call_pointer < len(run)-1:
-					call_pointer += 1
+			while True:
+				variables[pointer] = 1
+				run = functions[funname]
+				#--- Sanity check for empty functions
+				while len(run) > 0:
+					handler(run, call_pointer, funname)
+					#--- Slowdown for functions to not hang the device
+					sleep(0.02)
+					#--- Update the function pointer
+					if call_pointer < len(run)-1:
+						call_pointer += 1
+					else:
+						call_pointer = 0
+						break
+				#--- Jump to another function if called
+				if not nextfunction == '':
+					funname = nextfunction
+					nextfunction = ''
 				else:
-					call_pointer = 0
 					break
 			#--- Delete temporary variables
 			funname = None
@@ -145,9 +159,9 @@ def handler(lines, pointer):
 		funname = str(variables[pointer-1])
 		#--- Sanity check for overwriting functions
 		if funname in functions:
-			#--- Switch comments to enable overwriting functions
-			nodefine = 1
-			# functions.pop(funname, None)
+			nodefine = 1 # Comment this to enable overwriting functions
+			if not nodefine == 1:
+				functions.pop(funname, None)
 		commands = []
 		#--- Move to the function name and delete it, as well as DEFINE
 		pointer -= 1
@@ -161,7 +175,7 @@ def handler(lines, pointer):
 				break
 			commands.append(lines[pointer])
 			del lines[pointer]
-		#--- Add function to dictionary
+		#--- Add function to dictionary if defining
 		if not nodefine == 1:
 			functions[funname] = commands
 			variables[pointer] = 1
@@ -176,16 +190,28 @@ def handler(lines, pointer):
 		del nodefine
 	#--- GLOBALW command definition
 	elif value.startswith('globalw'):
+		access = value[8:]
 		variables[pointer] = 0
+		if access == '':
+			access = 'global'
 		#--- Sanity check for accessing a non-existing variable
 		try:
-			variables['g'] = variables[pointer-1]
+			variables[access] = variables[pointer-1]
 			variables[pointer] = 1
 		except Exception:
-			pass
+			return
+		#--- Delete temporary variable
+		access = None
+		del access
 	#--- GLOBALR command definition
 	elif value.startswith('globalr'):
-		variables[pointer] = variables['g']
+		access = value[8:]
+		if access == '':
+			access = 'global'
+		variables[pointer] = variables[access]
+		#--- Delete temporary variable
+		access = None
+		del access
 	#--- INPUT command definition
 	elif value.startswith('input'):
 		variables[pointer] = input(': ')
@@ -205,7 +231,7 @@ def handler(lines, pointer):
 				pointerset = pointer-variables[pointer-1]
 				variables[pointer] = 1
 		except Exception:
-			pass
+			return
 	#--- LOOK command definition
 	elif value.startswith('look'):
 		variables[pointer] = 0
@@ -213,7 +239,7 @@ def handler(lines, pointer):
 		try:
 			variables[pointer] = variables[pointer-variables[pointer-1]]
 		except Exception:
-			pass
+			return
 	#--- MATH command definition
 	elif value.startswith('math'):
 		variables[pointer] = 0
@@ -227,14 +253,12 @@ def handler(lines, pointer):
 				if letter in equation:
 					equation = equation.replace(letter, str(variables[pointer-1-index]))
 			except Exception:
-				#--- Clear variables
+				#--- Delete the equation if wrong input
 				equation = None
 				del equation
 				return
-		#--- This shouldn't contain any letters because of the loop so it's pretty safe
-		equation = eval(equation)
-		#--- Covert truthiness to correct form
-		variables[pointer] = int(equation)
+		#--- This shouldn't contain any letters because of the loop above so it's pretty safe
+		variables[pointer] = int(eval(equation))
 		#--- Delete temporary variable
 		equation = None
 		del equation
@@ -246,7 +270,7 @@ def handler(lines, pointer):
 			print(str(variables[pointer-1]))
 			variables[pointer] = 1
 		except Exception:
-			pass
+			return
 	#--- VALUE command definition
 	elif value.startswith('value'):
 		variables[pointer] = 0
