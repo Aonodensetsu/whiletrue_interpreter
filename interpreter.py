@@ -55,7 +55,7 @@ def interpreter():
 		#--- Manual: What can we do with this? 
 		# lines = ['value 1', 'define', 'value 1', 'print', 'value 1', 'call', 'defined', 'input', 'call', 'value 0', 'print', 'value 0', 'jump']
 		# lines = ['value step', 'define', 'globalr', 'math A%2 * (3*A+1) + (A%2==0) * A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter an arbitrary integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1) * (-1) + (B==1) * (-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1) * 4 + (A==1) * (-1)', 'jump', 'value 0', 'jump']
-		raise
+		# raise
 		#--- Custom input parser
 		custom = 0
 		while True:
@@ -105,7 +105,7 @@ def handler(lines, pointer):
 	global alphabet
 	#--- Update executed instruction
 	value = lines[pointer]
-	#--- Find command in list
+	#--- CALL command definition
 	if value.startswith('call'):
 		variables[pointer] = 0
 		#--- If call within a function, reset the function - infinite recursion
@@ -134,6 +134,7 @@ def handler(lines, pointer):
 			del funname
 			run = None
 			del run
+	#--- DEFINE command definition
 	elif value.startswith('define'):
 		#--- Sanity check for non-opened functions 
 		if value.startswith('defined'):
@@ -173,6 +174,7 @@ def handler(lines, pointer):
 		del commands
 		nodefine = None
 		del nodefine
+	#--- GLOBALW command definition
 	elif value.startswith('globalw'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
@@ -181,13 +183,16 @@ def handler(lines, pointer):
 			variables[pointer] = 1
 		except Exception:
 			pass
+	#--- GLOBALR command definition
 	elif value.startswith('globalr'):
 		variables[pointer] = variables['g']
+	#--- INPUT command definition
 	elif value.startswith('input'):
 		variables[pointer] = input(': ')
 		#--- Sanity check for empty input
 		if variables[pointer] == '':
 			variables[pointer] = 0
+	#--- JUMP command definition
 	elif value.startswith('jump'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
@@ -201,6 +206,7 @@ def handler(lines, pointer):
 				variables[pointer] = 1
 		except Exception:
 			pass
+	#--- LOOK command definition
 	elif value.startswith('look'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
@@ -208,6 +214,7 @@ def handler(lines, pointer):
 			variables[pointer] = variables[pointer-variables[pointer-1]]
 		except Exception:
 			pass
+	#--- MATH command definition
 	elif value.startswith('math'):
 		variables[pointer] = 0
 		equation = value[5:]
@@ -231,6 +238,7 @@ def handler(lines, pointer):
 		#--- Delete temporary variable
 		equation = None
 		del equation
+	#--- PRINT command definition
 	elif value.startswith('print'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
@@ -239,6 +247,7 @@ def handler(lines, pointer):
 			variables[pointer] = 1
 		except Exception:
 			pass
+	#--- VALUE command definition
 	elif value.startswith('value'):
 		variables[pointer] = 0
 		var = value[6:]
