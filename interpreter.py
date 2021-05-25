@@ -7,7 +7,9 @@ from string import ascii_uppercase as letters
 alphabet = list(letters)
 #--- Enable ANSI color support in Windows
 from os import system as color
-color('')	
+color('')
+#--- Set the extended commands status
+extended = 1
 #--- Initialize variables
 lines = []
 variables = {'global':'0'}
@@ -28,36 +30,31 @@ def interpreter():
 		#----- Test programs (uncomment to overwrite custom parser)
 		#--- Manual: How to end a program?
 		# lines = ['value 0', 'jump']
-		# raise
 		#--- Manual: How to define a function?
 		# lines = ['value name', 'define', 'defined', 'value 0', 'jump']
-		# raise
 		#--- Manual: MATH variable input order explanation
 		# lines = ['value 1', 'value 2', 'value 3', 'math A+B+C', 'print', 'value 0', 'jump']
-		# raise
 		#--- Manual: Naming of functions 
 		# lines = ['value hi how are you', 'define', 'defined', 'value 0', 'jump']
 		# lines = ['value 1', 'value 2', 'math A+B', 'define', 'defined', 'value 0', 'jump']
 		# lines = ['input', 'define', 'defined', 'value 0', 'jump']
-		# raise
 		#--- Manual: Undefined functions 
 		# lines = ['value hi', 'call', 'value hi', 'define', 'defined', 'value hi', 'call', 'value 0', 'jump']
-		# raise
 		#--- Manual: Why CALL? 
 		# lines = ['value 3', 'define', 'defined', 'value 1', 'value 2', 'math A+B', 'call', 'value 0', 'jump']
-		# raise
 		#--- Manual: Why LOOK? 
 		# lines = ['value 1', 'value 2', 'math A+B', 'value line 1', 'value line 2', 'value line 3', 'value line 4', 'value line 5', 'value line 6', 'value line 7', 'value line 8', 'value line 9', 'value line 10', 'value 12', 'look', 'value 2', 'math A+B', 'print', 'value 0', 'jump']
 		# lines = ['value 1', 'value 2', 'math A+B', 'value line 1', 'value line 2', 'value line 3', 'value line 4', 'value line 5', 'value line 6', 'value line 7', 'value line 8', 'value line 9', 'value line 10', 'math K', 'print', 'value 0', 'jump']
-		# raise
 		#--- Manual: Conditional jumps? 
 		# lines = ['value loop', 'define', 'value hi', 'print', 'globalr', 'math A+1', 'globalw', 'defined', 'value loop', 'call', 'globalr', 'math A>3', 'math (A==0) * 5 + (A!=0) * (-1)', 'jump', 'value 0', 'jump']
-		# raise
 		#--- Manual: What can we do with this? 
 		# lines = ['value 1', 'define', 'value 1', 'print', 'value 1', 'call', 'defined', 'input', 'call', 'value 0', 'print', 'value 0', 'jump']
 		# lines = ['value step', 'define', 'globalr', 'math A%2 * (3*A+1) + (A%2==0) * A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter an arbitrary integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1) * (-1) + (B==1) * (-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1) * 4 + (A==1) * (-1)', 'jump', 'value 0', 'jump']
-		# raise
+		#--- Extended manual: CALL
+		# lines = ['value hi', 'globalw hello', 'value hello', 'define', 'globalr A', 'print', 'defined', 'value hello', 'call A', 'globalr A', 'print', 'value 0', 'jump']
 		#--- Custom input parser
+		if lines:
+			raise
 		custom = 0
 		while True:
 			line = input().strip()
@@ -99,6 +96,7 @@ def interpreter():
 #--- The handler function that actually interprets
 def handler(lines, pointer, infunction):
 	#--- Import global variables
+	global extended
 	global variables
 	global functions
 	global call_pointer
@@ -110,6 +108,23 @@ def handler(lines, pointer, infunction):
 	#--- CALL command definition
 	if value.startswith('call'):
 		variables[pointer] = 0
+		#--- Toggle extended features
+		if extended == 1:
+			#--- Sanity check for only uppercase letters
+			var = value[5:].upper()
+			#--- Loop for replacing variables
+			for index, letter in enumerate(alphabet):
+				#--- Sanity check for accessing a non-existing variable
+				try:
+					if infunction == 'maininterpretercall':
+						if letter in var:
+							variables[letter] = variables[pointer-1-index]
+					else:
+						if letter in var:
+							if not letter in variables:
+								variables[letter] = variables[pointer-1-index]
+				except Exception:
+					pass
 		funname = str(variables[pointer-1])
 		#--- If called from within a function of the same name, reset the function - infinite recursion
 		if call_pointer != 0:
@@ -142,6 +157,8 @@ def handler(lines, pointer, infunction):
 					funname = nextfunction
 					nextfunction = ''
 				else:
+					for index, letter in enumerate(alphabet):
+						variables.pop(letter, None)
 					break
 			#--- Delete temporary variables
 			funname = None
@@ -190,10 +207,18 @@ def handler(lines, pointer, infunction):
 		del nodefine
 	#--- GLOBALW command definition
 	elif value.startswith('globalw'):
-		access = value[8:]
 		variables[pointer] = 0
-		if access == '':
-			access = 'global'
+		access = 'global'
+		if extended == 1:
+			access = value[8:]
+			#--- Loop for replacing variables
+			for index, letter in enumerate(alphabet):
+				if not infunction == 'maininterpretercall':
+					if letter in access:
+						if letter in variables:
+							access = access.replace(letter, str(variables[letter]))
+			if access == '':
+				access = 'global'
 		#--- Sanity check for accessing a non-existing variable
 		try:
 			variables[access] = variables[pointer-1]
@@ -205,10 +230,21 @@ def handler(lines, pointer, infunction):
 		del access
 	#--- GLOBALR command definition
 	elif value.startswith('globalr'):
-		access = value[8:]
+		access = 'global'
+		if extended == 1:
+			access = value[8:]
+			#--- Loop for replacing variables
+			for index, letter in enumerate(alphabet):
+				if not infunction == 'maininterpretercall':
+					if letter in access:
+						if letter in variables:
+							access = access.replace(letter, str(variables[letter]))
 		if access == '':
 			access = 'global'
-		variables[pointer] = variables[access]
+		try:
+			variables[pointer] = variables[access]
+		except Exception:
+			variables[pointer] = 0
 		#--- Delete temporary variable
 		access = None
 		del access
@@ -244,6 +280,7 @@ def handler(lines, pointer, infunction):
 	elif value.startswith('math'):
 		variables[pointer] = 0
 		equation = value[5:]
+		
 		#--- Variable assigning loop
 		for index, letter in enumerate(alphabet):
 			#--- Sanity check for accessing a non-existing variable
@@ -251,7 +288,16 @@ def handler(lines, pointer, infunction):
 				#--- Sanity check for only uppercase letters
 				equation = equation.upper()
 				if letter in equation:
-					equation = equation.replace(letter, str(variables[pointer-1-index]))
+					if extended == 1:
+						if infunction == 'maininterpretercall':
+							equation = equation.replace(letter, str(variables[pointer-1-index]))
+						else:
+							try:
+								equation = equation.replace(letter, str(variables[letter]))
+							except Exception:
+								equation = equation.replace(letter, str(variables[pointer-1-index]))
+					else:
+						equation = equation.replace(letter, str(variables[pointer-1-index]))
 			except Exception:
 				#--- Delete the equation if wrong input
 				equation = None
@@ -275,6 +321,20 @@ def handler(lines, pointer, infunction):
 	elif value.startswith('value'):
 		variables[pointer] = 0
 		var = value[6:]
+		for index, letter in enumerate(alphabet):
+			#--- Sanity check for accessing a non-existing variable
+			try:
+				if letter in var:
+					if extended == 1:
+						if infunction == 'maininterpretercall':
+							pass
+						else:
+							try:
+								var = var.replace(letter, str(variables[letter]))
+							except Exception:
+								pass
+			except Exception:
+				pass
 		#--- Conversion to int if possible
 		try:
 			int(var)
@@ -284,7 +344,7 @@ def handler(lines, pointer, infunction):
 		#--- Delete temporary variable
 		var = None
 		del var
-	#--- Sanity check for random input
+	#--- Sanity check for wrong command
 	else:
 		input('--- Unrecognized command ---')
 		halt()
