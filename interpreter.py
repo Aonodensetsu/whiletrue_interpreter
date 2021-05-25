@@ -32,7 +32,9 @@ def interpreter():
 		# lines = ['value 1', 'value 2', 'value 3', 'math A+B+C', 'print', 'value 0', 'jump']
 		# raise
 		#--- Manual: Naming of functions 
-		# lines = ['value hi', 'define', 'defined', 'value 1', 'value 2', 'math A+B', 'define', 'defined', 'value 0', 'jump']
+		# lines = ['value hi', 'define', 'defined', 'value 0', 'jump']
+		# lines = ['value 1', 'value 2', 'math A+B', 'define', 'defined', 'value 0', 'jump']
+		# lines = ['input', 'define', 'defined', 'value 0', 'jump']
 		# raise
 		#--- Manual: Undefined functions 
 		# lines = ['value hi', 'call', 'value hi', 'define', 'defined', 'value hi', 'call', 'value 0', 'jump']
@@ -42,16 +44,15 @@ def interpreter():
 		# raise
 		#--- Manual: Why LOOK? 
 		# lines = ['value 1', 'value 2', 'math A+B', 'value line 1', 'value line 2', 'value line 3', 'value line 4', 'value line 5', 'value line 6', 'value line 7', 'value line 8', 'value line 9', 'value line 10', 'value 12', 'look', 'value 2', 'math A+B', 'print', 'value 0', 'jump']
+		# lines = ['value 1', 'value 2', 'math A+B', 'value line 1', 'value line 2', 'value line 3', 'value line 4', 'value line 5', 'value line 6', 'value line 7', 'value line 8', 'value line 9', 'value line 10', 'math K', 'print', 'value 0', 'jump']
 		# raise
 		#--- Manual: Conditional jumps? 
 		# lines = ['value loop', 'define', 'value hi', 'print', 'globalr', 'math A+1', 'globalw', 'defined', 'value loop', 'call', 'globalr', 'math A>3', 'math 5-6*A', 'jump', 'value 0', 'jump']
 		# raise
 		#--- Manual: What can we do with this? 
 		# lines = ['value 1', 'define', 'value 1', 'print', 'value 1', 'call', 'defined', 'input', 'call', 'value 0', 'print', 'value 0', 'jump']
+		# lines = ['value step', 'define', 'globalr', 'math A%2*(3*A+1)+(A%2==0)*A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter_an_arbitrary_integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1)*(-1)+(B==1)*(-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1)*4+(A==1)*(-1)', 'jump', 'value 0', 'jump']
 		# raise
-		# Manual: How do you know this is Turing-complete?
-		lines = ['value step', 'define', 'globalr', 'math A%2*(3*A+1)+(A%2==0)*A/2', 'globalw', 'globalr', 'print', 'defined', 'value enter_an_arbitrary_integer', 'print', 'input', 'globalw', 'globalr', 'print', 'math (B!=1)*(-1)+(B==1)*(-3)', 'jump', 'value step', 'call', 'globalr', 'math (A!=1)*4+(A==1)*(-1)', 'jump', 'value 0', 'jump']
-		raise
 		#--- Custom input parser
 		custom = 0
 		while True:
@@ -102,7 +103,7 @@ def handler(lines, pointer):
 	#--- Update executed instruction
 	value = lines[pointer]
 	#--- Find command in list
-	if 'call' in value:
+	if value.startswith('call'):
 		variables[pointer] = 0
 		#--- If call within a function, reset the function - infinite recursion
 		if call_pointer != 0:
@@ -130,9 +131,9 @@ def handler(lines, pointer):
 			del funname
 			run = None
 			del run
-	elif 'define' in value:
+	elif value.startswith('define'):
 		#--- Sanity check for non-opened functions 
-		if 'defined' in value:
+		if value.startswith('defined'):
 			del lines[pointer]
 			return
 		variables[pointer] = 0
@@ -169,7 +170,7 @@ def handler(lines, pointer):
 		del commands
 		nodefine = None
 		del nodefine
-	elif 'globalw' in value:
+	elif value.startswith('globalw'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
 		try:
@@ -177,14 +178,14 @@ def handler(lines, pointer):
 			variables[pointer] = 1
 		except Exception:
 			pass
-	elif 'globalr' in value:
+	elif value.startswith('globalr'):
 		variables[pointer] = variables['g']
-	elif 'input' in value:
+	elif value.startswith('input'):
 		variables[pointer] = input(': ')
 		#--- Sanity check for empty input
 		if variables[pointer] == '':
 			variables[pointer] = 0
-	elif 'jump' in value:
+	elif value.startswith('jump'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
 		try:
@@ -197,36 +198,37 @@ def handler(lines, pointer):
 				variables[pointer] = 1
 		except Exception:
 			pass
-	elif 'look' in value:
+	elif value.startswith('look'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
 		try:
 			variables[pointer] = variables[pointer-variables[pointer-1]]
 		except Exception:
 			pass
-	elif 'math' in value:
+	elif value.startswith('math'):
 		variables[pointer] = 0
-		equation = value.split(' ')[1]
+		equation = value[5:]
 		#--- Variable assigning loop
 		for index, letter in enumerate(alphabet):
 			#--- Sanity check for accessing a non-existing variable
 			try:
+				#--- Sanity check for only uppercase letters
+				equation = equation.upper()
 				if letter in equation:
 					equation = equation.replace(letter, str(variables[pointer-1-index]))
 			except Exception:
+				#--- Clear variables
+				equation = None
+				del equation
 				return
 		#--- This shouldn't contain any letters because of the loop so it's pretty safe
 		equation = eval(equation)
 		#--- Covert truthiness to correct form
-		if equation == 'True':
-			equation = 1
-		elif equation == 'False':
-			equation = 0
 		variables[pointer] = int(equation)
 		#--- Delete temporary variable
 		equation = None
 		del equation
-	elif 'print' in value:
+	elif value.startswith('print'):
 		variables[pointer] = 0
 		#--- Sanity check for accessing a non-existing variable
 		try:
@@ -234,9 +236,9 @@ def handler(lines, pointer):
 			variables[pointer] = 1
 		except Exception:
 			pass
-	elif 'value' in value:
+	elif value.startswith('value'):
 		variables[pointer] = 0
-		var = value.split()[1]
+		var = value[6:]
 		#--- Conversion to int if possible
 		try:
 			int(var)
