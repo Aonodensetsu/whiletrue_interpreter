@@ -1,12 +1,11 @@
-#----------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------vvv-USER-SPACE-vvv------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------------------
-
 #--- Initialize command input
 commands = []
 
 #--- Set the extended commands status
-extended = 1
+extendedFeatures = 1
+
+#--- Allow overwriting previously declared functions
+overwriteFunctions = 0
 
 #--- Change the input style from one command per line to commands separated by semicolon (for sharing programs)
 briefInput = 0
@@ -52,7 +51,7 @@ briefInput = 0
 # commands = ['value hi', 'globalw hello', 'value hello', 'define', 'globalr A', 'print', 'defined', 'value hello', 'call A', 'globalr A', 'print', 'value 0', 'jump']
 
 #--------------------------------------------------------------------------------------------------------------------------		
-#---------------------------------------------vvv-DEVELOPER-SPACE-vvv------------------------------------------------------
+#-------------------------------------------------DEVELOPER-SPACE----------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------------------
 
 #--- Make program able to stop at any time by calling exit()
@@ -72,10 +71,9 @@ system('')
 #--- Initialize variables
 executeArray = ['_main']
 pointerArray = [0]
-variables = {'_global':'0'}
+variables = {}
 functions = {}
 custom = 0
-jumpto = -1
 
 #--- Show beginning message
 print('Input the\u001b[31;1m While(true){\u001b[0m code one instruction per line')
@@ -124,7 +122,8 @@ def interpreter():
 	global functions
 	global variables
 	global alphabet
-	global jumpto
+	global extendedFeatures
+	global overwriteFunctions
 	
 	#--- Get current pointer, function and its commands
 	functionname = executeArray[-1]
@@ -151,7 +150,7 @@ def interpreter():
 	if command.startswith('call'):
 		val = command[5:]
 		#--- Extended functionality (pass variables)
-		if extended == 1:
+		if extendedFeatures == 1:
 			#--- Sanity check for only uppercase letters
 			val = val.upper()
 			#--- Loop for replacing variables
@@ -229,7 +228,6 @@ def interpreter():
 			pointerArray[-1] += 1
 			return
 		funname = str(variables[functionname+'_'+str(pointer-1)])
-		nodefine = 0
 		dpointer = str(pointer)
 		
 		#--- Do not allow _ (which is used internally) to be in input
@@ -237,12 +235,6 @@ def interpreter():
 			print('\u001b[31;1mException\u001b[0m while handling input in DEFINE')
 			input('Value cannot contain an underscore')
 			exit()
-		
-		#--- Sanity check for overwriting functions
-		if funname in functions:
-			nodefine = 1 # Comment this to enable overwriting functions
-			if not nodefine == 1:
-				functions.pop(funname, None)
 		
 		#--- Add commands
 		lines = []
@@ -253,12 +245,20 @@ def interpreter():
 				variables[functionname+'_'+str(pointer)] = 1
 				break
 			lines.append(commands[pointer])
-			
-		#--- Add function to dictionary if defining
-		if not nodefine == 1:
+		
+		#--- Sanity check for overwriting functions
+		if overwriteFunctions != 0:
+			functions.pop(funname, None)
 			functions[funname] = lines
 			variables[functionname+'_'+dpointer] = 1
-		
+		elif not funname in functions:
+			functions[funname] = lines
+			variables[functionname+'_'+dpointer] = 1
+		else:
+			print('\u001b[31;1mException\u001b[0m while handling input in DEFINE')
+			input('Overwriting functions is not enabled')
+			exit()
+				
 		#--- Delete temporary variables
 		funname = None
 		del funname
@@ -274,7 +274,7 @@ def interpreter():
 		access = '_global'
 		
 		#--- Extended functionality (custom global variables)
-		if extended == 1:
+		if extendedFeatures == 1:
 			access = command[8:]
 			
 			#--- Do not allow _ (which is used internally) to be in input
@@ -324,7 +324,7 @@ def interpreter():
 		access = '_global'
 		
 		#--- Extended functionality (custom global variables)
-		if extended == 1:
+		if extendedFeatures == 1:
 			access = command[8:]
 			
 			#--- Do not allow _ (which is used internally) to be in input
@@ -410,11 +410,20 @@ def interpreter():
 	elif command.startswith('look'):
 		#--- Sanity check for acessing a non-existing variable
 		try:
-			variables[functionname+'_'+str(pointer)] = variables[functionname+'_'+str(pointer-variables[functionname+'_'+str(pointer-1)])]
+			if variables[functionname+'_'+str(pointer-1)] >= 0:
+				variables[functionname+'_'+str(pointer)] = variables[functionname+'_'+str(pointer-variables[functionname+'_'+str(pointer-1)])]
+			else:
+				print('\u001b[31;1mException\u001b[0m while handling variables in LOOK')
+				input('LOOK can only take positive values')
+				exit()
 		except Exception:
 			print('\u001b[31;1mException\u001b[0m while handling variables in LOOK')
 			input('Accessed a non-existing variable')
 			exit()
+		
+		#--- Delete temporary variables
+		val = None
+		del val
 	
 	#--- MATH command definition
 	elif command.startswith('math'):
@@ -426,7 +435,7 @@ def interpreter():
 		#--- Assign variables
 		for i, v in enumerate(alphabet):
 			if v in equation:
-				if extended == 1:
+				if extendedFeatures == 1:
 					if functionname == '_main':
 						equation = equation.replace(v, str(variables[functionname+'_'+str(pointer-i-1)]))
 					else:
@@ -467,7 +476,7 @@ def interpreter():
 			exit()
 		
 		#--- Extended functionality
-		if extended == 1:
+		if extendedFeatures == 1:
 			#--- Replacing variables (extended functionality of CALL)
 			for i, v in enumerate(alphabet):
 				if v in val:
