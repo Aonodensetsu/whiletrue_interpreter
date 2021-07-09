@@ -71,7 +71,7 @@ system('')
 #--- Initialize variables
 executeArray = ['_main']
 pointerArray = [0]
-variables = {}
+variables = {'_global': 0}
 functions = {}
 custom = 0
 
