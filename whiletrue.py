@@ -1,6 +1,3 @@
-#--- Initialize command input
-commands = []
-
 #--- Set the extended commands status
 extendedFeatures = 1
 
@@ -10,7 +7,7 @@ overwriteFunctions = 0
 #--- Change the input style from one command per line to commands separated by semicolon (for sharing programs)
 briefInput = 0
 
-#----- Test programs (uncomment to overwrite custom parser)
+#----- Test programs (uncomment to use instead of custom input)
 
 #--- Manual: How to end a program?
 # commands = ['value 0', 'jump']
@@ -51,9 +48,15 @@ briefInput = 0
 # commands = ['value hi', 'globalw hello', 'value hello', 'define', 'globalr A', 'print', 'defined', 'value hello', 'call A', 'globalr A', 'print', 'value 0', 'jump']
 # commands = ['value hello', 'define', 'value hi', 'globalw A', 'globalr A', 'print', 'defined', 'value hi', 'value hello', 'call B', 'value 0', 'jump']
 
+
+
+#--------------------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------------------		
 #-------------------------------------------------DEVELOPER-SPACE----------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------
+
+
 
 #--- Make program able to stop at any time by calling exit()
 from sys import exit
@@ -80,6 +83,12 @@ custom = 0
 print('Input the\u001b[31;1m While(true){\u001b[0m code one instruction per line')
 print('Uses eval() in MATH commands, make sure to\u001b[31;1m sanitize\u001b[0m it (it removes all letters so should be pretty safe)')
 print()
+
+#--- Initialize command input if not given
+try:
+	commands = commands
+except NameError:
+	commands = []
 
 #--- Custom input parser
 if not briefInput:
@@ -504,7 +513,8 @@ def interpreter():
 	
 	#--- Sanity check for wrong command
 	else:
-		input('--- Unrecognized command ---')
+		print('--- Unrecognized command ---')
+		input(command)
 		exit()
 	
 	#--- Update current pointer
