@@ -49,6 +49,7 @@ briefInput = 0
 
 #--- Extended manual: CALL
 # commands = ['value hi', 'globalw hello', 'value hello', 'define', 'globalr A', 'print', 'defined', 'value hello', 'call A', 'globalr A', 'print', 'value 0', 'jump']
+# commands = ['value hello', 'define', 'value hi', 'globalw A', 'globalr A', 'print', 'defined', 'value hi', 'value hello', 'call B', 'value 0', 'jump']
 
 #--------------------------------------------------------------------------------------------------------------------------		
 #-------------------------------------------------DEVELOPER-SPACE----------------------------------------------------------
@@ -81,16 +82,18 @@ print('Uses eval() in MATH commands, make sure to\u001b[31;1m sanitize\u001b[0m 
 print()
 
 #--- Custom input parser
-if not commands:
-	custom = 1
-	if not briefInput:
+if not briefInput:
+	if not commands:
+		custom = 1
 		while True:
 			command = input().strip()
 			if command == '':
 				break
 			commands.append(command)
-	else:
-		for i in input().strip().split(';'):
+else:
+	commands = []
+	for i in input().strip().split(';'):
+		if i != '':
 			commands.append(i.strip())
 
 #--- Assign commands to the _main function
@@ -149,6 +152,7 @@ def interpreter():
 	#--- CALL command definition
 	if command.startswith('call'):
 		val = command[5:]
+		letters = []
 		#--- Extended functionality (pass variables)
 		if extendedFeatures == 1:
 			#--- Sanity check for only uppercase letters
@@ -157,17 +161,18 @@ def interpreter():
 			for i, v in enumerate(alphabet):
 				#--- Sanity check for accessing a non-existing variable
 				try:
-					if functionname == '_main':
-						if v in val:
-							variables['_'+v] = variables[functionname+'_'+str(pointer-i-1)]
-					else:
-						if v in val:
-							if not v in variables:
-								variables['_'+v] = variables[functionname+'_'+str(pointer-i-1)]
+					if v in val:
+						letters.append(variables[functionname+'_'+str(pointer-i-1)])
 				except Exception:
 					print('\u001b[31;1mException\u001b[0m while handling variables in CALL')
 					input('Accessed a non-existing variable')
 					exit()
+			else:
+				for i, v in enumerate(alphabet):
+					if not letters:
+						break
+					variables['_'+v] = letters[0]
+					letters = letters[1:]	
 		else:
 			if val:
 				print('\u001b[31;1mException\u001b[0m while handling syntax in CALL')
@@ -182,15 +187,7 @@ def interpreter():
 			input('Value cannot contain an underscore')
 			exit()
 		
-		#--- If calling yourself recursively, reset the pointer
-		if funname == functionname:
-			variables[functionname+'_'+str(pointer)] = 1
-			pointerArray[-1] = 0
-			
-			#--- Slow down infinite recursion
-			sleep(0.02)
-			return
-		
+		#--- If function exists, call it
 		if funname in functions:
 			#--- If the function you're calling was called previously
 			#--- And has not ended (still in executeArray)
@@ -198,9 +195,9 @@ def interpreter():
 			#--- Since functions are calling themselves in a loop
 			if funname in executeArray:
 				variables[functionname+'_'+str(pointer)] = 1
-				pointerArray = pointerArray[:executeArray.index(funname)]
-				executeArray = executeArray[:executeArray.index(funname)]
-				
+				if funname != functionname:
+					pointerArray = pointerArray[:executeArray.index(funname)+1]
+					executeArray = executeArray[:executeArray.index(funname)+1]
 				#--- Reset the pointer of the called function to 0
 				pointerArray[-1] = 0
 			else:
@@ -208,7 +205,7 @@ def interpreter():
 				#--- Update pointer for this function to not get stuck on CALL
 				pointerArray[-1] += 1
 				
-				#--- If the function wasn't called previously, add it to the queue
+				#--- Add the function to the queue
 				executeArray.append(funname)
 				pointerArray.append(0)
 			#--- Delay to not spam in case of infinite recursion
@@ -236,6 +233,13 @@ def interpreter():
 			input('Value cannot contain an underscore')
 			exit()
 		
+		#--- Sanity check for overwriting functions
+		if funname in functions:
+			if overwriteFunctions == 0:
+				print('\u001b[31;1mException\u001b[0m while handling input in DEFINE')
+				input('Overwriting functions is not enabled')
+				exit()
+		
 		#--- Add commands
 		lines = []
 		while True:
@@ -251,13 +255,9 @@ def interpreter():
 			functions.pop(funname, None)
 			functions[funname] = lines
 			variables[functionname+'_'+dpointer] = 1
-		elif not funname in functions:
-			functions[funname] = lines
-			variables[functionname+'_'+dpointer] = 1
 		else:
-			print('\u001b[31;1mException\u001b[0m while handling input in DEFINE')
-			input('Overwriting functions is not enabled')
-			exit()
+			functions[funname] = lines
+			variables[functionname+'_'+dpointer] = 1	
 				
 		#--- Delete temporary variables
 		funname = None
@@ -280,27 +280,23 @@ def interpreter():
 			#--- Do not allow _ (which is used internally) to be in input
 			if '_' in access:
 				print('\u001b[31;1mException\u001b[0m while handling input in GLOBALR (extended functionality)')
-				input('Custom global variables cannot contain an underscore')
+				input('Value cannot contain an underscore')
 				exit()
 			
 			#--- Replacing variables (extended functionality of CALL)
-			for i, v in enumerate(alphabet):
-				if functionname != '_main':
+			if functionname != '_main':
+				for i, v in enumerate(alphabet):				
 					if v in access:
 						#--- Sanity check for accessing a non-existing variable
 						try:
 							access = access.replace(v, str(variables['_'+v]))
 						except Exception:
 							pass
-				else:
-					if v in access:
-						access = access.replace(v, str(variables[pointer-i-1]))
 			
 			#--- If extended features are enabled but not used, reset to default
 			if access == '':
 				access = '_global'
-			else:
-				access = '_'+access
+		
 		else:
 			if command[8:] != '':
 				print('\u001b[31;1mException\u001b[0m while handling syntax in GLOBALW')
@@ -330,29 +326,23 @@ def interpreter():
 			#--- Do not allow _ (which is used internally) to be in input
 			if '_' in access:
 				print('\u001b[31;1mException\u001b[0m while handling input in GLOBALR (extended functionality)')
-				input('Custom global variables cannot contain an underscore')
+				input('Value cannot contain an underscore')
 				exit()
 			
 			#--- Replacing variables (extended functionality of CALL)
-			for i, v in enumerate(alphabet):
-				if functionname != '_main':
+			if functionname != '_main':
+				for i, v in enumerate(alphabet):
 					if v in access:
 						#--- Sanity check for accessing a non-existing variable
 						try:
 							access = access.replace(v, str(variables['_'+v]))
 						except Exception:
 							pass
-				else:
-					if v in access:
-						variables[functionname+'_'+str(pointer)] = str(variables[functionname+'_'+str(pointer-i-1)])
-						pointerArray[-1] += 1
-						return
 			
 			#--- If extended features are enabled but not used, reset to default
 			if access == '':
 				access = '_global'
-			else:
-				access = '_'+access
+		
 		else:
 			if command[8:] != '':
 				print('\u001b[31;1mException\u001b[0m while handling syntax in GLOBALR')
@@ -378,7 +368,7 @@ def interpreter():
 		#--- Do not allow _ (which is used internally) to be in input
 		if '_' in val:
 				print('\u001b[31;1mException\u001b[0m while handling input in INPUT')
-				input('Input cannot contain an underscore')
+				input('Value cannot contain an underscore')
 				exit()
 		
 		#--- Empty string is not a valid input
@@ -391,20 +381,34 @@ def interpreter():
 	
 	#--- JUMP command definition
 	elif command.startswith('jump'):
+		#--- Sanity check for random values
+		try:
+			val = variables[functionname+'_'+str(pointer-1)]
+			val = int(val)
+		except ValueError:
+			print('\u001b[31;1mException\u001b[0m while handling variables in JUMP')
+			input('Can only jump to a number')
+			exit()
 		#--- Sanity check for accessing a non-existing variable
 		try:
-			if variables[functionname+'_'+str(pointer-1)] == 0:
+			if val == 0:
 				variables[functionname+'_'+str(pointer)] = 1
 				input('--- Pause for running pythonw ---')
 				exit()
 			else:
-				pointerArray[-1] = pointer - variables[functionname+'_'+str(pointer-1)]
+				pointerArray[-1] = pointer-val
 				variables[functionname+'_'+str(pointer)] = 1
+				val = None
+				del val
 				return
 		except Exception:
 			print('\u001b[31;1mException\u001b[0m while handling variables in JUMP')
 			input('Accessed a non-existing variable')
 			exit()
+		
+		#--- Delete temporary variables
+		val = None
+		del val
 	
 	#--- LOOK command definition
 	elif command.startswith('look'):
