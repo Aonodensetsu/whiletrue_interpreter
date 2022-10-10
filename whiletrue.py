@@ -103,12 +103,11 @@ if not commands:
 functions['_main'] = commands
 
 for i, v in enumerate(commands):
-	variables['_main_'+str(i)] = 0
+	variables['_main_'+str(i)] = str(0)
 	if enableTestPrograms:  # Print command list for preset programs
 		print(v)
 if enableTestPrograms:
 	print()
-
 del commands
 
 
@@ -118,20 +117,20 @@ def interpreter():
 	global functions
 	global variables
 	global enableExtendedFeatures
-	alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+	alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 	# --- Get current pointer, function and its commands
-	functionname = executeArray[-1]
+	fn_name = executeArray[-1]
 	pointer = pointerArray[-1]
-	_commands = functions[functionname]
+	cmd_list = functions[fn_name]
 	
 	# --- Exit function on end or repeat main program
-	if pointer >= len(_commands):
-		if functionname == '_main':
+	if pointer >= len(cmd_list):
+		if fn_name == '_main':
 			pointerArray[-1] = 0
 			return
 		else:
-			for _i, _v in enumerate(alphabet):
+			for _, _v in enumerate(alphabet):
 				if '_'+_v in variables:
 					variables.pop('_'+_v)
 			del executeArray[-1]
@@ -139,7 +138,7 @@ def interpreter():
 			return
 	
 	# --- Get current command
-	_command = _commands[pointer]
+	_command = cmd_list[pointer]
 
 	if _command.startswith('call'):
 		val = _command[5:]
@@ -153,7 +152,7 @@ def interpreter():
 				# --- Sanity check for accessing a non-existing variable
 				try:
 					if _v in val:
-						letters.append(variables[functionname+'_'+str(pointer-_i-1)])
+						letters.append(variables[fn_name+'_'+str(pointer-_i-1)])
 				except KeyError:
 					print('\u001b[31;1mException\u001b[0m while handling variables in CALL')
 					input('Accessed a non-existing variable')
@@ -170,58 +169,57 @@ def interpreter():
 				input('Extended features not enabled, CALL does not take arguments')
 				exit()
 		
-		funname = str(variables[functionname+'_'+str(pointer-1)])
+		fun_name = str(variables[fn_name+'_'+str(pointer-1)])
 		
 		# --- Do not allow _ (which is used internally) to be in input
-		if '_' in funname:
+		if '_' in fun_name:
 			print('\u001b[31;1mException\u001b[0m while handling input in CALL')
 			input('Value cannot contain an underscore')
 			exit()
 		
 		# --- If function exists, call it
-		if funname in functions:
+		if fun_name in functions:
 			# --- If the function you're calling was called previously
 			# --- And has not ended (still in executeArray)
 			# --- Then delete everything after that function in executeArray
 			# --- Since functions are calling themselves in a loop
-			if funname in executeArray:
-				variables[functionname+'_'+str(pointer)] = 1
-				if funname != functionname:
-					pointerArray = pointerArray[:executeArray.index(funname)+1]
-					executeArray = executeArray[:executeArray.index(funname)+1]
+			if fun_name in executeArray:
+				variables[fn_name+'_'+str(pointer)] = 1
+				if fun_name != fn_name:
+					pointerArray = pointerArray[:executeArray.index(fun_name)+1]
+					executeArray = executeArray[:executeArray.index(fun_name)+1]
 				# --- Reset the pointer of the called function to 0
 				pointerArray[-1] = 0
 			else:
-				variables[functionname+'_'+str(pointer)] = 1
+				variables[fn_name+'_'+str(pointer)] = 1
 				# --- Update pointer for this function to not get stuck on CALL
 				pointerArray[-1] += 1
 				
 				# --- Add the function to the queue
-				executeArray.append(funname)
+				executeArray.append(fun_name)
 				pointerArray.append(0)
 			# --- Delay to not spam in case of infinite recursion
 			sleep(0.02)
 			return
 
-		del funname
+		del fun_name
 		del val
 
 	elif _command.startswith('define'):
 		if _command.startswith('defined'):
-			variables[functionname+'_'+str(pointer)] = 1
+			variables[fn_name+'_'+str(pointer)] = 1
 			pointerArray[-1] += 1
 			return
-		funname = str(variables[functionname+'_'+str(pointer-1)])
-		dpointer = str(pointer)
+		fun_name = str(variables[fn_name+'_'+str(pointer-1)])
 		
 		# --- Do not allow _ (which is used internally) to be in input
-		if '_' in funname:
+		if '_' in fun_name:
 			print('\u001b[31;1mException\u001b[0m while handling input in DEFINE')
 			input('Value cannot contain an underscore')
 			exit()
 		
 		# --- Sanity check for overwriting functions
-		if funname in functions:
+		if fun_name in functions:
 			print('\u001b[31;1mException\u001b[0m while handling input in DEFINE')
 			input('Overwriting functions is not enabled')
 			exit()
@@ -231,16 +229,15 @@ def interpreter():
 		while True:
 			pointer += 1
 			pointerArray[-1] += 1
-			if _commands[pointer] == 'defined':
-				variables[functionname+'_'+str(pointer)] = 1
+			if cmd_list[pointer] == 'defined':
+				variables[fn_name+'_'+str(pointer)] = 1
 				break
-			lines.append(_commands[pointer])
+			lines.append(cmd_list[pointer])
 
-		functions[funname] = lines
-		variables[functionname+'_'+dpointer] = 1
+		functions[fun_name] = lines
+		variables[fn_name+'_'+str(pointer)] = 1
 
-		del funname
-		del dpointer
+		del fun_name
 		del lines
 
 	elif _command.startswith('globalw'):
@@ -257,7 +254,7 @@ def interpreter():
 				exit()
 			
 			# --- Replacing variables (extended functionality of CALL)
-			if functionname != '_main':
+			if fn_name != '_main':
 				for _i, _v in enumerate(alphabet):
 					if _v in access:
 						# --- Sanity check for accessing a non-existing variable
@@ -278,7 +275,7 @@ def interpreter():
 		
 		# --- Sanity check for accessing a non-existing variable
 		try:
-			variables[access] = variables[functionname+'_'+str(pointer-1)]
+			variables[access] = variables[fn_name+'_'+str(pointer-1)]
 		except KeyError:
 			print('\u001b[31;1mException\u001b[0m while handling variables in GLOBALW')
 			input('Accessed a non-existing variable')
@@ -299,7 +296,7 @@ def interpreter():
 				exit()
 			
 			# --- Replacing variables (extended functionality of CALL)
-			if functionname != '_main':
+			if fn_name != '_main':
 				for _i, _v in enumerate(alphabet):
 					if _v in access:
 						# --- Sanity check for accessing a non-existing variable
@@ -320,7 +317,7 @@ def interpreter():
 		
 		# --- Sanity check for accessing a non-existing variable
 		try:
-			variables[functionname+'_'+str(pointer)] = variables[access]
+			variables[fn_name+'_'+str(pointer)] = variables[access]
 		except KeyError:
 			print('\u001b[31;1mException\u001b[0m while handling variables in GLOBALR')
 			input('Accessed a non-existing variable')
@@ -339,14 +336,14 @@ def interpreter():
 		
 		# --- Empty string is not a valid input
 		if val != '':
-			variables[functionname+'_'+str(pointer)] = val
-
+			variables[fn_name+'_'+str(pointer)] = val
 		del val
 
 	elif _command.startswith('jump'):
+		val = 0
 		# --- Sanity check for random values
 		try:
-			val = int(variables[functionname+'_'+str(pointer-1)])
+			val = int(variables[fn_name+'_'+str(pointer-1)])
 		except ValueError:
 			print('\u001b[31;1mException\u001b[0m while handling variables in JUMP')
 			input('Can only jump to a number')
@@ -354,14 +351,14 @@ def interpreter():
 		# --- Sanity check for accessing a non-existing variable
 		try:
 			if val == 0:
-				variables[functionname+'_'+str(pointer)] = 1
+				variables[fn_name+'_'+str(pointer)] = 1
 				input('--- Program ended ---')
 				exit()
 			else:
 				if pointer-val < 0:
 					raise KeyError
 				pointerArray[-1] = pointer-val
-				variables[functionname+'_'+str(pointer)] = 1
+				variables[fn_name+'_'+str(pointer)] = 1
 		except KeyError:
 			print('\u001b[31;1mException\u001b[0m while handling variables in JUMP')
 			input('Accessed a non-existing pointer')
@@ -379,9 +376,9 @@ def interpreter():
 		for _i, _v in enumerate(alphabet):
 			if _v in equation:
 				if enableExtendedFeatures == 1:
-					if functionname == '_main':
+					if fn_name == '_main':
 						try:
-							equation = equation.replace(_v, str(variables[functionname+'_'+str(pointer-_i-1)]))
+							equation = equation.replace(_v, str(variables[fn_name+'_'+str(pointer-_i-1)]))
 						except KeyError:
 							print('\u001b[31;1mException\u001b[0m while handling variables in MATH')
 							print('Accessed a non-existing variable')
@@ -392,29 +389,29 @@ def interpreter():
 							equation = equation.replace(_v, str(variables[_v]))
 						except KeyError:
 							try:
-								equation = equation.replace(_v, str(variables[functionname+'_'+str(pointer-_i-1)]))
+								equation = equation.replace(_v, str(variables[fn_name+'_'+str(pointer-_i-1)]))
 							except KeyError:
 								print('\u001b[31;1mException\u001b[0m while handling variables in MATH')
 								print('Accessed a non-existing variable')
 								exit()
 				else:
 					try:
-						equation = equation.replace(_v, str(variables[functionname+'_'+str(pointer-_i-1)]))
+						equation = equation.replace(_v, str(variables[fn_name+'_'+str(pointer-_i-1)]))
 					except KeyError:
 						print('\u001b[31;1mException\u001b[0m while handling variables in MATH')
 						print('Accessed a non-existing variable')
 						exit()
 		
 		# --- All the letters were replaced by values so eval should be safe
-		variables[functionname+'_'+str(pointer)] = int(eval(equation))
+		variables[fn_name+'_'+str(pointer)] = int(eval(equation))
 
 		del equation
 
 	elif _command.startswith('print'):
 		# --- Sanity check for accessing a non-existing variable
 		try:
-			print(str(variables[functionname+'_'+str(pointer-1)]))
-			variables[functionname+'_'+str(pointer)] = 1
+			print(str(variables[fn_name+'_'+str(pointer-1)]))
+			variables[fn_name+'_'+str(pointer)] = 1
 		except KeyError:
 			print('\u001b[31;1mException\u001b[0m while handling variables in PRINT')
 			input('Accessed a non-existing variable')
@@ -433,13 +430,13 @@ def interpreter():
 			# --- Replacing variables (extended functionality of CALL)
 			for _i, _v in enumerate(alphabet):
 				if _v in val:
-					if functionname != '_main':
+					if fn_name != '_main':
 						# --- Sanity check for accessing a non-existing variable
 						try:
 							val = val.replace(_v, str(variables[_v]))
 						except KeyError:
 							try:
-								val = val.replace(_v, str(variables[functionname+'_'+str(pointer-_i-1)]))
+								val = val.replace(_v, str(variables[fn_name+'_'+str(pointer-_i-1)]))
 							except KeyError:
 								print('\u001b[31;1mException\u001b[0m while handling variables in PRINT')
 								input('Accessed a non-existing variable')
@@ -448,10 +445,9 @@ def interpreter():
 		# --- Convert to integer if possible
 		try:
 			int(val)
-			variables[functionname+'_'+str(pointer)] = int(val)
+			variables[fn_name+'_'+str(pointer)] = int(val)
 		except ValueError:
-			variables[functionname+'_'+str(pointer)] = str(val)
-
+			variables[fn_name+'_'+str(pointer)] = str(val)
 		del val
 	
 	# --- Sanity check for wrong command
