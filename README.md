@@ -1,7 +1,7 @@
 # While(true){ interpreter
 This is the official While(true){ interpreter repository.
 
-Python 3.9.5 (v3) - a partial rewrite to fix bugs and make it more robust.
+Python 3.10+ - a partial rewrite to fix bugs and make it more robust.
 
 It contains all programs from the manual and is (well) documented.
 
