@@ -6,7 +6,7 @@ from collections import defaultdict
 
 @dataclass
 class Example:
-    INFINITE_LOOP =      ['value hi', 'print']
+    SHORTEST_LOOP =      ['value hi', 'print']
     END =                ['value 0', 'jump']
     DEFINE =             ['value name', 'define', 'value 0', 'defined', 'value 0', 'jump']
     MATH_ORDER =         ['value 1', 'value 2', 'value 3', 'math A+B+C', 'print', 'value 0', 'jump']
@@ -15,7 +15,7 @@ class Example:
     NAMING_INPUT =       ['input', 'define', 'value 0', 'defined', 'value 0', 'jump']
     UNDEFINED =          ['value hi', 'call', 'value hi', 'define', 'value hi', 'print', 'defined', 'value hi', 'call',
                           'value 0', 'jump']
-    RECURSION_SELF =     ['value hi', 'define', 'value hi', 'print', 'value hi', 'call', 'defined', 'value hi', 'call',
+    RECURSION_SELF =     ['value f', 'define', 'value hi', 'print', 'value f', 'call', 'defined', 'value f', 'call',
                           'value 0', 'jump']
     RECURSION_DOUBLE =   ['value hi', 'define', 'value hi', 'print', 'value hello', 'call', 'defined', 'value hello',
                           'define', 'value hello', 'print', 'value hi', 'call', 'defined', 'value hi', 'call',
@@ -182,7 +182,7 @@ class Interpreter:
                     v = int(v)
                 except ValueError:
                     v = str(v)
-                self.variables[fn][fp] = v
+                self.variables[fn][fp] = v or 0
             case ['jump']:
                 j = int(self.variables[fn][(fp - 1) % len(fc)])
                 if not j:
