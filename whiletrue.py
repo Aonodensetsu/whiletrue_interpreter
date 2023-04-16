@@ -161,7 +161,7 @@ class Interpreter:
                 except ValueError:
                     v = str(v)
                 k = i[0] if len(i) > 0 and i[0] else '_global'
-                if k in self.variables[fn].keys():
+                if k in self.variables[fn]:
                     self.variables[fn][k] = v
                 else:
                     self.variables['_global'][k] = v
@@ -172,7 +172,7 @@ class Interpreter:
                     self.end = True
                     return
                 access = i[0] if len(i) > 0 and i[0] else '_global'
-                if access in self.variables[fn].keys():
+                if access in self.variables[fn]:
                     self.variables[fn][fp] = self.variables[fn][access]
                 else:
                     self.variables[fn][fp] = self.variables['_global'][access]
@@ -192,7 +192,7 @@ class Interpreter:
             case ['math', *i]:
                 equation = ' '.join(i).upper()
                 for i, v in enumerate(self.alphabet):
-                    if self.extended_features and v in self.variables[fn].keys():
+                    if self.extended_features and v in self.variables[fn]:
                         equation = equation.replace(v, str(self.variables[fn][v]))
                     else:
                         equation = equation.replace(v, str(self.variables[fn][(fp - 1 - i) % len(fc)]))
