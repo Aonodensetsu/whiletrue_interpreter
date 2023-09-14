@@ -1,11 +1,9 @@
-from time import sleep
-from typing import Optional
-from dataclasses import dataclass
 from collections import defaultdict
+from time import sleep
+from enum import Enum
 
 
-@dataclass
-class Example:
+class Example(Enum):
     SHORTEST_LOOP =      ['value hi', 'print']
     END =                ['value 0', 'jump']
     DEFINE =             ['value name', 'define', 'value 0', 'defined', 'value 0', 'jump']
@@ -42,7 +40,6 @@ class Example:
                           'value hello', 'call B', 'value 0', 'jump']
 
 
-@dataclass
 class Interpreter:
     functions: dict
     variables: dict
@@ -50,21 +47,24 @@ class Interpreter:
     extended_features: bool
     verbose: bool
     alphabet: str
-    end: bool
+    _sleep: float
+    _end: bool
+
+    __slots__ = ('functions', 'variables', 'exec', '_sleep', 'extended_features', 'verbose', 'alphabet', '_end')
 
     def __init__(
             self,
-            program: Optional[list] = None,
+            program: list | None = None,
             extended_features: bool = False,
             verbose: bool = False,
-            sleep: float = 0,
-            alphabet: str = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            alphabet: str = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            _sleep: float = 0.1
             ) -> None:
         self.extended_features = extended_features
         self.verbose = verbose
-        self.sleep = sleep
         self.alphabet = alphabet
-        self.end = False
+        self._sleep = _sleep
+        self._end = False
         self.functions = {}
         self.variables = {'_global': {'_global': 0}, '_main': defaultdict(int)}
         self.exec = [['_main', 0]]
@@ -75,13 +75,13 @@ class Interpreter:
         else:
             print('Exception while setting up the interpreter')
             print('Length of program must be non-zero')
-            self.end = True
+            self._end = True
         self.functions['_main'] = program
 
     @staticmethod
     def input_commands() -> list:
         print('Input the While(true){ code separated by colons or newlines, empty line for end of input')
-        print('Uses eval() in MATH commands, make sure to sanitize it (all letters are replaced, so should be pretty safe)')
+        print('Uses eval() in MATH commands, sanitize input (all letters are replaced, so should be pretty safe)')
         cmd_list = []
         while (line := input().strip().split(';'))[0] != '':
             for cmd in (i.strip() for i in line if i.strip()):
@@ -89,7 +89,7 @@ class Interpreter:
         return cmd_list
 
     def loop(self) -> None:
-        while not self.end:
+        while not self._end:
             self.step()
 
     def step(self) -> None:
@@ -103,7 +103,7 @@ class Interpreter:
                 if not self.extended_features and i:
                     print('Exception while handling syntax in CALL')
                     print('Extended features not enabled, CALL does not take arguments')
-                    self.end = True
+                    self._end = True
                     return
                 fnname = self.variables[fn][(fp - 1) % len(fc)]
                 val = ' '.join(i)
@@ -132,7 +132,7 @@ class Interpreter:
                     if not self.extended_features and self.variables[fn][inx] in self.functions:
                         print('Exception while handling syntax in DEFINE')
                         print('Overwriting functions is not enabled')
-                        self.end = True
+                        self._end = True
                         return
                     self.functions[self.variables[fn][inx]] = []
                     self.variables[self.variables[fn][inx]] = defaultdict(int)
@@ -146,14 +146,14 @@ class Interpreter:
                     if not len(self.functions[self.variables[fn][inx]]):
                         print('Exception while handling syntax in DEFINE')
                         print('Functions may not be length 0')
-                        self.end = True
+                        self._end = True
                         return
                     self.exec[-1][1] = fp % len(fc)
             case ['globalw', *i]:
                 if not self.extended_features and i:
                     print('Exception while handling syntax in GLOBALW')
                     print('Extended features not enabled, GLOBALW does not take arguments')
-                    self.end = True
+                    self._end = True
                     return
                 v = self.variables[fn][(fp - 1) % len(fc)]
                 try:
@@ -169,7 +169,7 @@ class Interpreter:
                 if not self.extended_features and i:
                     print('Exception while handling syntax in GLOBALR')
                     print('Extended features not enabled, GLOBALR does not take arguments')
-                    self.end = True
+                    self._end = True
                     return
                 access = i[0] if len(i) > 0 and i[0] else '_global'
                 if access in self.variables[fn]:
@@ -186,7 +186,7 @@ class Interpreter:
             case ['jump']:
                 j = int(self.variables[fn][(fp - 1) % len(fc)])
                 if not j:
-                    self.end = True
+                    self._end = True
                     return
                 self.exec[-1][1] = (fp - j - 1) % len(fc)
             case ['math', *i]:
@@ -211,14 +211,14 @@ class Interpreter:
             case _:
                 print('Exception while handling syntax')
                 print(f'Unknown command/parameter: {fc[fp]}')
-                self.end = True
+                self._end = True
                 return
         self.exec[-1][1] += 1
         if fp + 1 >= len(self.functions[fn]):
             self.exec[-1][1] = 0
             if not fn == '_main':
                 self.exec.pop()
-        sleep(self.sleep)
+        sleep(self._sleep)
 
 
 if __name__ == '__main__':
